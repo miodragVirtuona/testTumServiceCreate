@@ -1,0 +1,298 @@
+<project basedir="." default="build.default">
+	<property file="build.properties"/>
+	<property file=".settings/org.eclipse.jdt.core.prefs"/>
+	
+    <condition value="${org.eclipse.jdt.core.compiler.source}" property="java.compiler.source" else="11">
+      <isset property="org.eclipse.jdt.core.compiler.source"/>
+    </condition>
+    <condition value="${org.eclipse.jdt.core.compiler.compliance}" property="java.compiler.compliance" else="11">
+      <isset property="org.eclipse.jdt.core.compiler.compliance"/>
+    </condition>
+    <condition value="${org.eclipse.jdt.core.compiler.codegen.targetPlatform}" property="java.compiler.targetPlatform" else="11">
+      <isset property="org.eclipse.jdt.core.compiler.codegen.targetPlatform"/>
+    </condition>
+
+	<!--TOOLS IN BUILD PROCESS-->
+	<property name="dir.tools" value="../TWCbuildtools" />
+	<property name="tools.yuicompressor" value="${dir.tools}/yuicompressor.jar" />
+	<property name="tools.copytemplates" value="${dir.tools}/copytemplates.jar"/> 
+	<property name="tools.querycopy" value="${dir.tools}/copyqueries.jar"/>
+	<property name="tools.projectimportexport" value="${dir.tools}/projectimportexport.jar"/>
+	<property name="tools.vocabularygenerator" value="${dir.tools}/vocabularygenerator.jar"/>
+
+	<property environment="env"/>
+	<property name="java.home.path" value="${env.JAVA_HOME}"/>
+	<property name="java.compiler.path" value="${java.home.path}/bin/javac"/>
+
+	<available file="${dir.tools}" type="dir" property="check.dir.tools" />
+	<fail unless="check.dir.tools" message="SVN Project ${dir.tools} is missing. Checkout it from SVN:DevOps/BuildTools/ (you should checkout TRUNK)" />
+
+	<!---->
+	<property name="dir.project" value="tasorProjects/"/>
+	<property name="dir.docs.java" value="docs/java/"/>
+	<property name="dir.java.build" value="bin/"/>
+	<property name="dir.build" value="build/"/>
+	<property name="dir.builds" value="builds/"/>
+	<property name="dir.build.projects" value="${dir.build}/tasorProjects"/>
+	<property name="dir.build.code" value="${dir.build}/code"/>
+	<property name="dir.build.dev" value="${dir.build}/development"/>
+	<property name="file.version.zip" value="TS${service.name}_V${service.version}.zip"/>
+	<property name="file.version.zip.path" value="${dir.builds}/${file.version.zip}"/>
+	<property name="file.project.zip" value="TS${service.name}.zip"/>
+	<property name="file.project.zip.path" value="${dir.project}/service/export/${file.project.zip}"/>
+	<property name="file.service.jar" value="TS${service.name}_V${service.version}.jar"/>
+	<property name="file.service.jar.debug" value="TS${service.name}_V${service.version}-debug.jar"/>
+	
+	<property name="file.service_docs.jar" value="TS${service.name}_V${service.version}-javadoc.jar"/>
+	<property name="dir.lib" value="lib/"/>
+	
+
+	<mkdir dir="${dir.build}"/>
+	<mkdir dir="${dir.build.code}"/>
+	<mkdir dir="${dir.build.projects}"/>
+	<mkdir dir="${dir.build.dev}"/>
+	
+	<path id="build.classpath">
+		<fileset dir="${dir.lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="build.default">
+		<antcall>
+			<target name="build.clean"></target>
+		</antcall>
+		<antcall>
+			<target name="build.jar.runtime"></target>
+		</antcall>
+		<!--
+		<antcall>
+			<target name="build.jar.dev"></target>
+		</antcall>
+		-->
+		<antcall>
+			<target name="build.webxml"></target>
+		</antcall>
+		<antcall>
+			<target name="build.project"></target>
+		</antcall>
+		<antcall>
+			<target name="build.zip"></target>
+		</antcall>
+	</target>
+
+	<target name="build.zip">
+		<zip destfile="${dir.build}/${service.name}.zip">
+			<fileset dir="${dir.build}">
+				<exclude name="${service.name}.zip"/>
+			</fileset>
+		</zip>
+	</target>
+
+	
+	<target name="build.webxml">
+		<copy file="web.xml" tofile="${dir.build.code}/web.xml"/>
+	</target>
+	
+	<target name="build.jar.runtime" depends="compile.runtime">
+		<delete>
+			<fileset dir="${dir.build.code}">
+				<include name="**/*.jar"/>
+				<exclude name="**/*javadoc.jar"/>
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="${dir.build.dev}">
+				<include name="**/*.jar"/>
+				<exclude name="**/*javadoc.jar"/>
+			</fileset>
+		</delete>
+		<jar destfile="${dir.build.code}\${file.service.jar}">
+			<fileset dir="${dir.java.build}">
+				<include name="**/*"/>
+				<exclude name="test/*"/>
+			</fileset>
+		</jar>
+	</target>
+	
+	<target name="build.jar.dev" depends="compile.dev">
+		<delete>
+			<fileset dir="${dir.build.dev}">
+				<include name="**/*.jar"/>
+				<exclude name="**/*javadoc.jar"/>
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="${dir.build.dev}">
+				<include name="**/*.jar"/>
+				<exclude name="**/*javadoc.jar"/>
+			</fileset>
+		</delete>
+		<jar destfile="${dir.build.dev}\${file.service.jar.debug}">
+			<fileset dir="${dir.java.build}">
+				<include name="**/*"/>
+				<exclude name="test/*"/>
+			</fileset>
+		</jar>
+	</target>
+	
+  	<target name="compile.runtime" description="compile the java source files">
+		<antcall target="compile.generic">
+		    <param name="compileForDebug" value="off"/>
+		  </antcall>
+	</target>
+	
+	<target name="compile.dev" description="compile the java source files">  
+		<antcall target="compile.generic">
+		    <param name="compileForDebug" value="on"/>
+		  </antcall>
+	</target>
+	<target name="compile.generic" description="compile the java source files">  
+		<echo>Compiling with compiler path ${java.compiler.path}</echo>
+		
+		<echo>Compiler source: ${java.compiler.source}</echo>
+		<echo>Compiler complience: ${java.compiler.compliance}</echo>
+		<echo>Compiler target platform: ${java.compiler.targetPlatform}</echo>
+		<echo>Compile for debug: ${compileForDebug}</echo>
+
+  		<delete dir="${dir.java.build}"/>
+  		<mkdir dir="${dir.java.build}"/>
+  		<copy todir="${dir.java.build}">
+  			<fileset dir="src/java">
+				<include name="**/*" />  
+				<exclude name="**/*.java" />  
+  			</fileset>
+  		</copy>
+		<javac srcdir="src" destdir="${dir.java.build}" includeantruntime="false" fork="yes" debug="${compileForDebug}" executable="${java.compiler.path}"
+			source="${java.compiler.source}" target="${java.compiler.targetPlatform}" >  
+			<exclude name="java/test/**"/>
+			<classpath>  
+				<fileset dir="lib">  
+					<include name="**/*.jar" />  
+				</fileset>  
+			</classpath>  
+		</javac>
+	</target>
+	
+	<target name="build.clean">
+		<delete dir="${dir.build}" failonerror="false"/>
+	</target>
+	
+	<target name="build.project" depends="updateProject">
+		<echo>Building projects</echo>
+		<unzip src="${file.project.zip.path}" dest="${dir.build.projects}"/>
+		<echo file="${dir.build.projects}/ProjectsInstallCommand.txt">java -jar projectimportexport.jar -tasorEP ??TASOR_URL -userName ??USER_NAME -workingDir ??DEP_TMP_DIR/tasorProjects -storeURI ??RDF_STORE_URI -operation import -projectURIs ${project.service.uri} -sameURIs -replace</echo>
+	</target>
+	
+	<target name="build.version">
+		<delete failonerror="false">
+		    <fileset dir="${dir.builds}" includes="**/*"/>
+		</delete>
+		<mkdir dir="${dir.builds}"/>
+		<zip destfile="${file.version.zip.path}">
+			<fileset dir="${dir.build}">
+				<exclude name="${service.name}.zip"/>
+			</fileset>
+		</zip>
+	</target>
+	
+	<target name="updateProject" depends="updateNamedActions">
+		<echo message="Exporting projects ${project.service.uri}"/>
+		<echo message="Tasor EP ${service.tasor.url}"/>
+		<echo message="User name ${account.name}"/>
+		<mkdir dir="${dir.project}/tmp"/>
+		<java jar="${tools.projectimportexport}" fork="true">
+			<arg value="-projectURIs"/>
+			<arg value="${project.service.uri}"/>
+			<arg value="-tasorEP"/>
+			<arg value="${service.tasor.url}"/>
+			<arg value="-userName"/>
+			<arg value="${account.name}"/>
+			<arg value="-userPass"/>
+			<arg value="${account.pass}"/>
+			<arg value="-workingDir"/>
+			<arg value="${dir.project}/tmp"/>
+			<arg value="-destPath"/>
+			<arg value="${dir.project}/tmp/appout.txt"/>
+			<arg value="-operation"/>
+			<arg value="export"/>
+		</java>
+		<zip destfile="${file.project.zip.path}" basedir="${dir.project}/tmp"/>
+		<delete dir="${dir.project}/tmp"/>
+	</target>
+	
+	<target name="updateNamedActions">
+		<echo>Download Named Actions</echo>
+		<mkdir dir="${dir.project}/service/namedActions"/>
+		<java jar="${tools.querycopy}" fork="true">
+			<arg value="-projecturi"/>
+			<arg value="${project.service.uri}"/>
+			<arg value="-tasoruri"/>
+			<arg value="${service.tasor.url}"/>
+			<arg value="-username"/>
+			<arg value="${account.name}"/>
+			<arg value="-userpass"/>
+			<arg value="${account.pass}"/>
+			<arg value="-destinationfolder"/>
+			<arg value="${dir.project}/service/namedActions"/>
+		</java>
+	</target>
+	
+	<target name="create.javadoc">
+		<echo>Generating Javadocs</echo>
+		<delete failonerror="false">
+		    <fileset dir="${dir.docs.java}" includes="**/*"/>
+		</delete>
+		<mkdir dir="${dir.docs.java}" />
+		<javadoc packagenames="com.virtuona.*"
+			sourcepath="src/java"
+			excludepackagenames="test.*"
+			defaultexcludes="yes"
+			destdir="${dir.docs.java}"
+			author="true"
+			version="true"
+			use="true"
+			classpathref="build.classpath"
+			windowtitle="${service.name}">
+			    <bottom><![CDATA[<i>Copyright &#169; 2000 Dummy Corp. All Rights Reserved.</i>]]></bottom>
+		</javadoc>
+	</target>
+
+	<target name="generateVocabulary">
+		<fail message="Could not generate vocabulary because property fu.uri is not set (probably the old build.properties file)">
+			<condition><or>
+				<equals arg1="${fu.uri}" arg2=""/>
+				<not><isset property="fu.uri"/></not>
+			</or></condition>
+		</fail>
+		<echo>Generating Vocabulary</echo>
+		<!--<mkdir dir="${dir.project}/service/namedActions"/>-->
+	    <toLowerCase string="${service.name}" to="lowerName" />
+		<java jar="${tools.vocabularygenerator}" fork="true">
+			<arg value="-fuuri"/>
+			<arg value="${fu.uri}"/>
+			<arg value="-user"/>
+			<arg value="${account.name}"/>
+			<arg value="-pass"/>
+			<arg value="${account.pass}"/>
+			<arg value="-outDir"/>
+			<arg value="src/java/com/virtuona/tasor/services/${lowerName}/vocabularies"/>
+		</java>
+	</target>
+	
+	<target name="build.javadoc" depends="create.javadoc">
+		<echo>Copy javadoc to jar</echo>
+		<delete failonerror="false">
+		    <fileset dir="${dir.build.dev}" includes="**/*-javadoc.jar"/>
+		</delete>
+		<jar destfile="${dir.build.dev}/${file.service_docs.jar}" basedir="${dir.docs.java}"></jar>
+	</target>
+
+	<!-- Util fns -->
+	<scriptdef language="javascript" name="toLowerCase">
+		<attribute name="string" /> 
+		<attribute name="to" />
+		project.setProperty(attributes.get("to"),attributes.get("string").toLowerCase());
+	</scriptdef>
+
+</project>
