@@ -1,0 +1,7 @@
+fu.uri					=	??FU_URI
+project.service.uri		=	??SERVICE_PRJ_URI
+service.name			=	??SERVICE_PRJ_NAME
+service.tasor.url		=	http://dev.virtuona.rs/virtdev/rdfTasor
+account.name			=	??USER_NAME
+account.pass			=	??USER_PASS
+service.version			=	??VERSION

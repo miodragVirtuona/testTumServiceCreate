@@ -1,0 +1,15 @@
+
+	<!--Template for instantiating service in servlet container -->
+	<servlet>
+		<servlet-name>??SERVLET_NAME</servlet-name>
+		<servlet-class>com.virtuona.tasor.services.??SERVICE_PACKAGE.??SERVICE_CLASS</servlet-class>
+		<init-param>
+			<param-name>ServletServiceMapping</param-name>
+			<param-value>/??URL_PATTERN</param-value>
+		</init-param>
+		<load-on-startup>6</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>??SERVLET_NAME</servlet-name>
+		<url-pattern>/??URL_PATTERN</url-pattern>
+	</servlet-mapping>
